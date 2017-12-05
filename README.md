@@ -180,7 +180,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
     - Then graph can be represented this way:
 
-    - ```python
+    - ```
       X         
         \
          (+)--> q ---(*)--> f
@@ -255,3 +255,100 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
   - And so on..
 
 - Neural networks is a stack of some simple operation that forms complex operations.
+
+
+
+## 5. Convolutional neural networks (CNNs)
+
+- Neural networks history:
+  - First perceptron machine was developed by Frank Rosenblatt in 1957. It was used to recognize letters of the alphabet. Back propagation wasn't developed yet.
+  - Multilayer perceptron was developed in 1960 by Adaline/Madaline. Back propagation wasn't developed yet.
+  - Back propagation was developed in 1986 by Rumeelhart.
+  - There was a period which nothing new was happening with NN. Cause of the limited computing resources and data.
+  - In [2006](www.cs.toronto.edu/~fritz/absps/netflix.pdf) Hinton released a paper that shows that we can train a deep neural network using Restricted Boltzmann machines to initialize the weights then back propagation.
+  - The first strong results was in 2012 by Hinton in [speech recognition](http://ieeexplore.ieee.org/document/6296526/). And the [Alexnet](https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf) "Convolutional neural networks" that wins the image net in 2012 also by Hinton's team.
+  - After that NN is widely used in various applications.
+- Convolutional neural networks history:
+  - Hubel & Wisel in 1959 to 1968 experiments on cats cortex found that there are a topographical mapping in the cortex and that the neurons has hireical organization from simple to complex.
+  - In 1998, Yann Lecun gives the paper [Gradient-based learning applied to document recognition](http://ieeexplore.ieee.org/document/726791/) that introduced the Convolutional neural networks. It was good for recognizing zip letters but couldn't run on a more complex examples.
+  - In 2012 [AlexNet](https://papers.nips.cc/paper/4824-imagenet-classification-with-deep-convolutional-neural-networks.pdf) used the same Yan Lecun architecture and won the image net challenge. The difference from 1998 that now we have a large data sets that can be used also the power of the GPUs solved a lot of performance problems.
+  - Starting from 2012 there are CNN that are used for various tasks (Here are some applications):
+    - Image classification.
+    - Image retrieval.
+      - Extracting features using a NN and then do a similarity matching.
+    - Object detection.
+    - Segmentation.
+      - Each pixel in an image takes a label.
+    - Face recognition.
+    - Pose recognition.
+    - Medical images.
+    - Playing Atari games with reinforcement learning.
+    - Galaxies classification.
+    - Street signs recognition.
+    - Image captioning.
+    - Deep dream.
+- ConvNet architectures make the explicit assumption that the inputs are images, which allows us to encode certain properties into the architecture.
+- There are a few distinct types of Layers in ConvNet (e.g. CONV/FC/RELU/POOL are by far the most popular)
+- Each Layer may or may not have parameters (e.g. CONV/FC do, RELU/POOL don’t)
+- Each Layer may or may not have additional hyperparameters (e.g. CONV/FC/POOL do, RELU doesn’t)
+- How Convolutional neural networks works?
+  - A fully connected layer is a layer in which all the neurons is connected. Sometimes we call it a dense layer.
+    - If input shape is `(X, M)` the weighs shape for this will be `(NoOfHiddenNeurons, X)`
+  - Convolution layer is a layer in which we will keep the structure of the input by a filter that goes through all the image.
+    - We do this with dot product: `W.T*X + b`. This equation uses the broadcasting technique.
+    - So we need to get the values of `W` and `b`
+    - We usually deal with the filter (`W`) as a vector not a matrix.
+  - We call output of the convolution activation map. We need to have multiple activation map.
+    - Example if we have 6 filters, here are the shapes:
+      - Input image                        `(32,32,3)`
+      - filter size                              `(5,5,3)`
+        - We apply 6 filters. The depth must be three because the input map has depth of three.
+      - Output of Conv.                 `(28,28,6)` 
+        - if one filter it will be   `(28,28,1)`
+      - After RELU                          `(28,28,6)` 
+      - Another filter                     `(5,5,6)`
+      - Output of Conv.                 `(24,24,10)`
+  - It turns out that convNets learns in the first layers the low features and then the mid-level features and then the high level features.
+  - After the Convnets we can have a linear classifier for a classification task.
+  - In Convolutional neural networks usually we have some (Conv ==> Relu)s and then we apply a pool operation to downsample the size of the activation.
+- What is stride when we are doing convolution:
+  - While doing a conv layer we have many choices to make regarding the stride of which we will take. I will explain this by examples.
+  - Stride is skipping while sliding. By default its 1.
+  - Given a matrix with shape of `(7,7)` and a filter with shape `(3,3)`:
+    - If stride is `1` then the output shape will be `(5,5)`              `# 2 are dropped`
+    - If stride is `2` then the output shape will be `(3,3)`             `# 4 are dropped`
+    - If stride is `3` it doesn't work.
+  - A general formula would be `((N-F)/stride +1)`
+    - If stride is `1` then `O = ((7-3)/1)+1 = 4 + 1 = 5`
+    - If stride is `2` then `O = ((7-3)/2)+1 = 2 + 1 = 3`
+    - If stride is `3` then `O = ((7-3)/3)+1 = 1.33 + 1 = 2.33`        `# doesn't work`
+
+- In practice its common to zero pad the border.   `# Padding from both sides.`
+  - Give a stride of `1` its common to pad to this equation:  `(F-1)/2` where F is the filter size
+    - Example `F = 3` ==> Zero pad with `1`
+    - Example `F = 5` ==> Zero pad with `2`
+  - If we pad this way we call this same convolution.
+  - Adding zeros gives another features to the edges thats why there are different padding techniques like padding the corners not zeros but in practice zeros works!
+  - We do this to maintain our full size of the input. If we didn't do that the input will be shrinking too fast and we will lose a lot of data.
+- Example:
+  - If we have input of shape `(32,32,3)` and ten filters with shape is `(5,5)` with stride `1` and pad `2`
+  - Output size will be `(32,32,10)`	                       `# We maintain the size.`
+  - Size of parameters per filter `= 5*5*3 + 1 = 76`
+  - All parameters `= 76 * 10 = 76`
+- Number of filters is usually common to be to the power of 2.           `# To vectorize well.`
+- So here are the parameters for the Conv layer:
+  - Number of filters K.
+    - Usually a power of 2.
+  - Spatial content size F.
+    - 3,5,7 ....
+  - The stride S. 
+    - Usually 1 or 2        (If the stride is big there will be a downsampling but different of pooling) 
+  - Amount of Padding
+    - If we want the input shape to be as the output shape, based on the F if 3 its 1, if F is 5 the 2 and so on.
+- Pooling makes the representation smaller and more manageable.
+- Pooling Operates over each activation map independently.
+- Example of pooling is the maxpooling.
+  - Parameters of max pooling is the size of the filter and the stride"
+    - Example `2x2` with stride `2`                     `# Usually the two parameters are the same 2 , 2`
+- Also example of pooling is average pooling.
+  - In this case it might be learnable.
