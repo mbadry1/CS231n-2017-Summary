@@ -93,7 +93,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
   - | Regularizer           | Equation                            | Comments               |
     | --------------------- | ----------------------------------- | ---------------------- |
     | L2                    | `R(W) = Sum(W^2)`                   | Sum all the W squared  |
-    | L1                    | `R(W) = Sum(|W|)`                   | Sum of all Ws with abs |
+    | L1                    | `R(W) = Sum(W)`                     | Sum of all Ws with abs |
     | Elastic net (L1 + L2) | `R(W) = beta * Sum(W^2) + Sum(|W|)` |                        |
     | Dropout               |                                     | No Equation            |
 
@@ -117,7 +117,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
   - Consider this numerical problem when you are computing Softmax:
 
-    - ```
+    - ```python
       f = np.array([123, 456, 789]) # example with 3 classes and each having large scores
       p = np.exp(f) / np.sum(np.exp(f)) # Bad: Numeric problem, potential blowup
 
