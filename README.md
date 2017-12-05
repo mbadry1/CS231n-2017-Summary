@@ -23,6 +23,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 ## Introduction to CNN for visual recognition
 
 - A brief history of Computer vision starting from the late 1960s to 2017.
+- Computer vision problems includes image classification, object localization, object detection, and scene understanding.
 - [Imagenet](http://www.image-net.org/) is one of the biggest datasets in image classification available right now.
 - Starting 2012 in the Imagenet competition, CNN (Convolutional neural networks) is always winning.
 - CNN actually has been invented in 1997 by [Yann Lecun](http://ieeexplore.ieee.org/document/726791/).
@@ -62,8 +63,10 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 - We need a loss function to measure how good or bad our current parameters.
 
-  - `Loss = L[i] =(f(X[i],W),Y[i])`
-  - `Loss for all = 1/N * Sum(Li(f(X[i],W),Y[i]))      # Indicates the average` 
+  - ```python
+    Loss = L[i] =(f(X[i],W),Y[i])
+    Loss_for_all = 1/N * Sum(Li(f(X[i],W),Y[i]))      # Indicates the average
+    ```
 
 - Then we find a way to minimize the loss function given some parameters. This is called **optimization**.
 
@@ -85,7 +88,10 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 - We add **regularization** for the loss function so that the discovered model don't overfit the data.
 
-  - `Loss = L = 1/N * Sum(Li(f(X[i],W),Y[i])) + lambda * R(W)`
+  - ```python
+    Loss = L = 1/N * Sum(Li(f(X[i],W),Y[i])) + lambda * R(W)
+    ```
+
   - Where `R` is the regularizer, and `lambda` is the regularization term.
 
 - There are different regularizations techniques:
@@ -105,14 +111,20 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
   - Softmax function:
 
-    - `A[L] = e^(score[L]) / sum(e^(score[L]), NoOfClasses)`
+    - ```python
+      A[L] = e^(score[L]) / sum(e^(score[L]), NoOfClasses)
+      ```
 
   - Sum of the vector should be 1.
 
   - Softmax loss:
 
-    - `Loss = -logP(Y = y[i]|X = x[i])`
+    - ```python
+      Loss = -logP(Y = y[i]|X = x[i])
+      ```
+
     - Log of the probability of the good class. We want it to be near 1 thats why we added a minus.
+
     - Softmax loss is called cross-entropy loss.
 
   - Consider this numerical problem when you are computing Softmax:
@@ -139,7 +151,9 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
       - **Numerical gradient**: Approximate, slow, easy to write.   (But its useful in debugging.)
       - **Analytic gradient**: Exact, Fast, Error-prone.   (Always used in practice)
     - After we compute the gradient of our parameters, we compute the gradient descent:
-      - `W = W - learning_rate * W_grad`
+      - ```python
+        W = W - learning_rate * W_grad
+        ```
     - learning_rate is so important hyper parameter you should get the best value of it first of all the hyperparameters.
     - stochastic gradient descent:
       - Instead of using all the date, use a mini batch of examples (32/64/128 are commonly used) for faster results.
