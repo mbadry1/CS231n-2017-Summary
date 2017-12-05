@@ -93,8 +93,8 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
   - | Regularizer           | Equation                            | Comments               |
     | --------------------- | ----------------------------------- | ---------------------- |
     | L2                    | `R(W) = Sum(W^2)`                   | Sum all the W squared  |
-    | L1                    | `R(W) = Sum(W)`                     | Sum of all Ws with abs |
-    | Elastic net (L1 + L2) | `R(W) = beta * Sum(W^2) + Sum(|W|)` |                        |
+    | L1                    | `R(W) = Sum(lWl)`                   | Sum of all Ws with abs |
+    | Elastic net (L1 + L2) | `R(W) = beta * Sum(W^2) + Sum(lWl)` |                        |
     | Dropout               |                                     | No Equation            |
 
 - Regularization prefers smaller `W`s over big `W`s.
