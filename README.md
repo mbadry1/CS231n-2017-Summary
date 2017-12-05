@@ -20,7 +20,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## Introduction to CNN for visual recognition
+## 1. Introduction to CNN for visual recognition
 
 - A brief history of Computer vision starting from the late 1960s to 2017.
 - Computer vision problems includes image classification, object localization, object detection, and scene understanding.
@@ -30,7 +30,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## Image classification
+## 2. Image classification
 
 - Image classification problem has a lot of challenges like illumination and viewpoints.
   - ![](Images/39.jpeg)
@@ -57,7 +57,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## Loss function and optimization
+## 3. Loss function and optimization
 
 - In the last section we talked about linear classifier but we didn't discussed how we could **train** the parameters of that model to get best `w`'s and `b`'s.
 
@@ -147,14 +147,111 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
     - Follow the slope.
       - ![](Images/41.png)
       - Image [source](https://rasbt.github.io/mlxtend/user_guide/general_concepts/gradient-optimization_files/ball.png).
+
     - Our goal is to compute the gradient of each parameter we have.
       - **Numerical gradient**: Approximate, slow, easy to write.   (But its useful in debugging.)
       - **Analytic gradient**: Exact, Fast, Error-prone.   (Always used in practice)
+
     - After we compute the gradient of our parameters, we compute the gradient descent:
       - ```python
         W = W - learning_rate * W_grad
         ```
+
     - learning_rate is so important hyper parameter you should get the best value of it first of all the hyperparameters.
+
     - stochastic gradient descent:
       - Instead of using all the date, use a mini batch of examples (32/64/128 are commonly used) for faster results.
 
+
+
+
+## 4. Introduction to Neural network
+
+- Computing the analytic gradient for arbitrary complex functions:
+
+  - What is a Computational graphs?
+
+    - Used to represent any function. with nodes.
+    - Using Computational graphs can easy lead us to use a technique that called back-propagation. Even with complex models like CNN and RNN.
+
+  - Back-propagation simple example:
+
+    - Suppose we have `f(x,y,z) = (x+y)z`
+
+    - Then graph can be represented this way:
+
+    - ```python
+      X         
+        \
+         (+)--> q ---(*)--> f
+        /           /
+      Y            /
+                  /
+                 /
+      Z---------/
+      ```
+
+    - We made an intermediate variable `q`  to hold the values of `x+y`
+
+    - Then we have:
+
+      - ```python
+        q = (x+y)              # dq/dx = 1 , dq/dy = 1
+        f = qz                 # df/dq = z , df/dz = q
+        ```
+
+    - Then:
+
+      - ```python
+        df/dq = z
+        df/dz = q
+        df/dx = df/dq * dq/dx = z * 1 = z       # Chain rule
+        df/dy = df/dq * dq/dy = z * 1 = z       # Chain rule
+        ```
+
+  - So in the Computational graphs, we call each operation `f`. For each `f` we calculate the local gradient before we go on back propagation and then we compute the gradients in respect of the loss function using the chain rule.
+
+  - In the Computational graphs you can split each operation to as simple as you want but the nodes will be a lot. if you want the nodes to be smaller be sure that you can compute the gradient of this node.
+
+  - A bigger example:
+
+    - ![](Images/01.png)
+    - Hint: the back propagation of two nodes going to one node from the back is by adding the two derivatives.
+
+  - Modularized implementation: forward/ backward API (example multiply code):
+
+    - ```python
+      class MultuplyGate(object):
+        """
+        x,y are scalars
+        """
+        def forward(x,y):
+          z = x*y
+          self.x = x  # Cache
+          self.y = y	# Cache
+          # We cache x and y because we know that the derivatives contains them.
+          return z
+        def backward(dz):
+          dx = self.y * dz         #self.y is dx
+          dy = self.x * dz
+          return [dx, dy]
+      ```
+
+  - If you look at a deep learning framework you will find it follow the Modularized implementation where each class has a definition for forward and backward. For example:
+
+    - Multiplication
+    - Max
+    - Plus
+    - Minus
+    - Sigmoid
+    - Convolution
+
+- So to define neural network as a function:
+
+  - (Before) Linear score function: `f = Wx`
+  - (Now) 2-layer neural network:    `f = W2*max(0,W1*x)` 
+    - Where max is the RELU non linear function
+  - (Now) 3-layer neural network:    `f = W3*max(0,W2*max(0,W1*x)`
+  - And so on..
+
+- Neural networks is a stack of some simple operation that forms complex operations.
