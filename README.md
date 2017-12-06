@@ -332,7 +332,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
   - We do this to maintain our full size of the input. If we didn't do that the input will be shrinking too fast and we will lose a lot of data.
 - Example:
   - If we have input of shape `(32,32,3)` and ten filters with shape is `(5,5)` with stride `1` and pad `2`
-  - Output size will be `(32,32,10)`	                       `# We maintain the size.`
+    - Output size will be `(32,32,10)`                       `# We maintain the size.`
   - Size of parameters per filter `= 5*5*3 + 1 = 76`
   - All parameters `= 76 * 10 = 76`
 - Number of filters is usually common to be to the power of 2.           `# To vectorize well.`
@@ -352,3 +352,521 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
     - Example `2x2` with stride `2`                     `# Usually the two parameters are the same 2 , 2`
 - Also example of pooling is average pooling.
   - In this case it might be learnable.
+
+
+
+## 6. Training neural networks I
+
+- As a revision here are the Mini batch stochastic gradient descent algorithm steps:
+
+  - Loop:
+    1. Sample a batch of data.
+    2. Forward prop it through the graph (network) and get loss.
+    3. Backprop to calculate the gradients.
+    4. Update the parameters using the gradients.
+
+- Activation functions:
+
+  - Different choices for activation function includes Sigmoid, tanh, RELU, Leaky RELU, Maxout, and ELU.
+
+  - ![](Images/42.png)
+
+  - Sigmoid:
+
+    - Squashes the numbers between [0,1]
+    - Used as a firing rate like human brains.
+    - `Sigmoid(x) = 1 / (1 + e^-x)`
+    - Problems with sigmoid:
+      - big values neurons ***kill*** the gradients.
+        - Gradients are in most cases near 0 (Big values/small values), that kills the updates if the graph/network are large.
+      - Not Zero-centered.
+        - Didn't produce zero-mean data.
+      - `exp()` is a bit compute expensive.
+        - just to mention. We have a more complex operations in deep learning like convolution.
+
+  - Tanh:
+
+    - Squashes the numbers between [-1,1]
+    - Zero centered.
+    - Still big values neurons "kill" the gradients.
+    - `Tanh(x)` is the equation.
+    - Proposed by Yann Lecun in 1991.
+
+  - RELU (Rectified linear unit):
+
+    - `RELU(x) = max(0,x)`
+    - Doesn't kill the gradients.
+      - Only small values that are killed. Killed the gradient in the half
+    - Computationally efficient.
+    - Converges much faster than Sigmoid and Tanh `(6x)`
+    - More biologically plausible than sigmoid.
+    - Proposed by Alex Krizhevsky in 2012 Toronto university. (AlexNet)
+    - Problems:
+      - Not zero centered.
+    - If weights aren't initialized good, maybe 75% of the neurons will be dead and thats a waste computation. But its still works. This is an active area of research to optimize this.
+    - To solve the issue mentioned above, people might initialize all the biases by 0.01
+
+  - Leaky RELU:
+
+    - `leaky_RELU(x) = max(0.01x,x)`
+    - Doesn't kill the gradients from both sides.
+    - Computationally efficient.
+    - Converges much faster than Sigmoid and Tanh (6x)
+    - Will not die.
+    - PRELU is placing the 0.01 by a variable alpha which is learned as a parameter.
+
+  - Exponential linear units (ELU):
+
+    - ```
+      ELU(x) = { x                                           if x > 0
+      		   alpah *(exp(x) -1)		                   if x <= 0
+                 # alpah are a learning parameter
+      }
+      ```
+
+    - It has all the benefits of RELU
+
+    - Closer to zero mean outputs and adds some robustness to noise.
+
+    - problems
+
+      - `exp()` is a bit compute expensive. 
+
+  - Maxout activations:
+
+    - `maxout(x) = max(w1.T*x + b1, w2.T*x + b2)`
+    - Generalizes RELU and Leaky RELU
+    - Doesn't die!
+    - Problems:
+      - oubles the number of parameters per neuron
+
+  - In practice:
+
+    - Use RELU. Be careful for your learning rates.
+    - Try out Leaky RELU/Maxout/ELU
+    - Try out tanh but don't expect much.
+    - Don't use sigmoid!
+
+- **Data preprocessing**:
+
+  - Normalize the data:
+
+  - ```python
+    # Zero centered data. (Calculate the mean for every input).
+    # On of the reasons we do this is because we need data to be between positive and negative and not all the be negative or positive. 
+    X -= np.mean(X, axis = 1)
+
+    # Then apply the standard deviation. Hint: in images we don't do this.
+    X /= np.std(X, axis = 1)
+    ```
+
+  - To normalize images:
+
+    - Subtract the mean image (E.g. Alexnet)
+      - Mean image shape is the same as the input images.
+    - Or Subtract per-channel mean 
+      - Means calculate the mean for each channel of all images. Shape is 3 (3 channels)
+
+- **Weight initialization**:
+
+  - What happened when initialize all Ws with zeros?
+
+    - All the neurons will do exactly the same thing. They will have the same gradient and they will have the same update.
+    - So if W's of a specific layer is equal the thing described happened
+
+  - First idea is to initialize the w's with small random numbers:
+
+    - ```python
+      W = 0.01 * np.random.rand(D, H)
+      # Works OK for small networks but it makes problems with deeper networks!
+      ```
+
+    - The standard deviations is going to zero in deeper networks. and the gradient will vanish sooner in deep networks.
+
+    - ```python
+      W = 1 * np.random.rand(D, H) 
+      # Works OK for small networks but it makes problems with deeper networks!
+      ```
+
+    - The network will explode with big numbers!
+
+  - ***Xavier initialization***:
+
+    - ```python
+      W = np.random.rand(in, out) / np.sqrt(in)
+      ```
+
+    - It works because we want the variance of the input to be as the variance of the output.
+
+    - But it has an issue, It breaks when you are using RELU.
+
+  - ***He initialization*** (Solution for the RELU issue):
+
+    - ```python
+      W = np.random.rand(in, out) / np.sqrt(in/2)
+      ```
+
+    - Solves the issue with RELU. Its recommended when you are using RELU
+
+  - Proper initialization is an active area of research.
+
+- **Batch normalization**:
+
+  - is a technique to provide any layer in a Neural Network with inputs that are zero mean/unit variance.
+  - It speeds up the training. You want to do this a lot.
+    - Made by Sergey Ioffe and Christian Szegedy at 2015.
+  - We make a Gaussian activations in each layer. by calculating the mean and the variance.
+  - Usually inserted after (fully connected or Convolutional layers) and (before nonlinearity).
+  - Steps (For each output of a layer)
+    1. First we compute the mean and variance^2 of the batch for each feature.
+    2. We normalize by subtracting the mean and dividing by square root of (variance^2 + epsilon)
+       - epsilon to not divide by zero
+    3. Then we make a scale and shift variables: `Result = gamma * normalizedX + beta`  
+       - gamma and beta are learnable parameters.
+       - it basically possible to say “Hey!! I don’t want zero mean/unit variance input, give me back the raw input - it’s better for me.”
+       - Hey shift and scale by what you want not just the mean and variance!
+  - The algorithm makes each layer flexible (It chooses which distribution it wants)
+  - We initialize the BatchNorm Parameters to transform the input to zero mean/unit variance distributions but during training they can learn that any other distribution might be better.
+  - During the running of the training we need to calculate the globalMean and globalVariance for each layer by using weighted average.
+  - <u>Benefits of Batch Normalization</u>:
+    - Networks train faster.
+    - Allows higher learning rates.
+    - helps reduce the sensitivity to the initial starting weights.
+    - Makes more activation functions viable.
+    - Provides some regularization.
+      - Because we are calculating mean and variance for each batch that gives a slight regularization effect.
+  - In conv layers, we will have one variance and one mean per activation map.
+  - Batch normalization have worked best for CONV and regular deep NN, But for recurrent NN and reinforcement learning its still an active research area.
+    - Its challengey in reinforcement learning because the batch is small.
+
+- **Baby sitting the learning process**
+
+  1. Preprocessing of data.
+  2. Choose the architecture.
+  3. Make a forward pass and check the loss (Disable regularization). Check if the loss is reasonable.
+  4. Add regularization, the loss should go up!
+  5. Disable the regularization again and take a small number of data and try to train the loss and reach zero loss.
+     - You should overfit perfectly for small datasets.
+  6. Take your full training data, and small regularization then try some value of learning rate.
+     - If loss is barely changing, then the learning rate is small.
+     - If you got `NAN` then your NN exploded and your learning rate is high.
+     - Get your learning rate range by trying the min value (That can change) and the max value that doesn't explode the network.
+  7. Do Hyperparameters optimization to get the best hyperparameters values.
+
+- Hyperparameter Optimization
+
+  - Try Cross validation strategy.
+    - Run with a few ephocs, and try to optimize the ranges.
+  - Its best to optimize in log space.
+  - Adjust your ranges and try again.
+  - Its better to try random search instead of grid searches (In log space)
+
+
+
+## 7. Training neural networks II
+
+- **Optimization algorithms**:
+
+  - Problems with stochastic gradient descent:
+
+    - if loss quickly in one direction and slowly in another (For only two variables), you will get very slow progress along shallow dimension, jitter along steep direction. Our NN will have a lot of parameters then the problem will be more.
+    - Local minimum or saddle points
+      - If SGD went into local minimum we will stuck at this point because the gradient is zero.
+      - Also in saddle points the gradient will be zero so we will stuck.
+      - Saddle points says that at some point:
+        - Some gradients will get the loss up.
+        - Some gradients will get the loss down.
+        - And that happens more in high dimensional (100 million dimension for example)
+      - The problem of deep NN is more about saddle points than about local minimum because deep NN has high dimensions (Parameters)
+      - Mini batches are noisy because the gradient is not taken for the whole batch.
+
+  - **SGD + momentum**:
+
+    - Build up velocity as a running mean of gradients:
+
+    - ```python
+      # Computing weighted average. rho best is in range [0.9 - 0.99]
+      V[t+1] = rho * v[t] + dx
+      x[t+1] = x[t] - learningRate * V[t+1]
+      ```
+
+    - `V[0]` is zero.
+
+    - Solves the saddle point and local minimum problems.
+
+    - It overshoots the problem and returns to it back.
+
+  - **Nestrov momentum**:
+
+    - ```python
+      dx = compute_gradient(x)
+      old_v = v
+      v = rho * v - learning_rate * dx
+      x+= -rho * old_v + (1+rho) * v
+      ```
+
+    - Doesn't overshoot the problem but slower than SGD + momentum
+
+  - **AdaGrad**
+
+    - ```python
+      grad_squared = 0
+      while(True):
+        dx = compute_gradient(x)
+        
+        # here is a problem, the grad_squared isn't decayed (gets so large)
+        grad_squared += dx * dx			
+        
+        x -= (learning_rate*dx) / (np.sqrt(grad_squared) + 1e-7)
+      ```
+
+  - **RMSProp**
+
+    - ```python
+      grad_squared = 0
+      while(True):
+        dx = compute_gradient(x)
+        
+        #Solved ADAgra
+        grad_squared = decay_rate * grad_squared + (1-grad_squared) * dx * dx  
+        
+        x -= (learning_rate*dx) / (np.sqrt(grad_squared) + 1e-7)
+      ```
+
+    - People uses this instead of AdaGrad
+
+  - **Adam**
+
+    - Calculates the momentum and RMSProp as the gradients.
+    - It need a Fixing bias to fix starts of gradients.
+    - Is the best technique so far runs best on a lot of problems.
+    - With `beta1 = 0.9` and `beta2 = 0.999` and `learning_rate = 1e-3` or `5e-4` is a great starting point for many models!
+
+  - **Learning decay**
+
+    - Ex. decay learning rate by half every few epochs.
+    - To help the learning rate not to bounce out.
+    - Learning decay is common with SGD+momentum but not common with Adam.
+    - Dont use learning decay from the start at choosing your hyperparameters. Try first and check if you need decay or not.
+
+  - All the above algorithms we have discussed is a first order optimization.
+
+  - **Second order optimization**
+
+    - Use gradient and Hessian to from quadratic approximation.
+    - Step to the minima of the approximation.
+    - What is nice about this update?
+      - It doesn't has a learning rate in some of the versions.
+    - But its unpractical for deep learning
+      - Has O(N^2) elements.
+      - Inverting takes O(N^3).
+    - **L-BFGS** is a version of second order optimization
+      - Works with batch optimization but not with mini-batches.
+
+  - In practice first use ADAM and if it didn't work try L-BFGS.
+
+  - Some says all the famous deep architectures uses **SGS + Nestrov momentum**
+
+- **Regularization**
+
+  - So far we have talked about reducing the training error, but we care about most is how our model will handle unseen data!
+  - What if the gab of the error between training data and validation data are too large?
+  - This error is called high variance.
+  - **Model Ensembles**:
+    - Algorithm:
+      - Train multiple independent models of the same architecture with different initializations.
+      - At test time average their results.
+    - It can get you extra 2% performance.
+    - It reduces the generalization error.
+    - You can use some snapshots of your NN at the training ensembles them and take the results.
+  - Regularization solves the high variance problem. We have talked about L1, L2 Regularization.
+  - Some Regularization techniques are designed for only NN and can do better.
+  - **Drop out**:
+    - In each forward pass, randomly set some of the neurons to zero. Probability of dropping is a hyperparameter that are 0.5 for almost cases.
+    - So you will chooses some activation and makes them zero.
+    - It works because:
+      - It forces the network to have redundant representation; prevent co-adaption of features!
+      - If you think about this, It ensemble some of the models in the same model!
+    - At test time we might multiply each dropout layer by the probability of the dropout.
+    - Sometimes at test time we don't multiply anything and leave it as it is.
+    - With drop out it takes more time to train.
+  - **Data augmentation**:
+    - Another technique that makes Regularization.
+    - Change the data!
+    - For example flip the image, or rotate it.
+    - Example in ResNet:
+      - Training: Sample random crops and scales:
+        1. Pick random L in range [256,480]
+        2. Resize training image, short side = L
+        3. Sample random 224x244 patch.
+      - Testing: average a fixed set of crops
+        1. Resize image at 5 scales: {224, 256, 384, 480, 640}
+        2. For each size, use 10 224x224 crops: 4 corners + center + flips
+      - Apply Color jitter or PCA
+      - Translation, rotation, stretching.
+  - Drop connect
+    - Like drop out idea it makes a regularization.
+    - Instead of dropping the activation, we randomly zeroing the weights.
+  - Fractional Max Pooling
+    - Cool regularization idea. Not commonly used.
+    - Randomize the regions in which we pool.
+  - Stochastic depth
+    - New idea.
+    - Eliminate layers, instead on neurons.
+    - Has the similar effect of drop out but its a new idea.
+
+- **Transfer learning**:
+
+  - Some times your data is overfitted by your model because the data is small not because of regularization.
+
+  - You need a lot of data if you want to train/use CNNs.
+
+  - Steps of transfer learning
+
+    1. Train on a big dataset that has common features with your dataset. Called pretraining.
+    2. Freeze the layers except the last layer and feed your small dataset to learn only the last layer.
+    3. Not only the last layer maybe trained again, you can fine tune any number of layers you want based on the number of data you have
+
+  - Guide to use transfer learning:
+
+    - |                         | Very Similar dataset               | very different dataset                   |
+      | ----------------------- | ---------------------------------- | ---------------------------------------- |
+      | **very little dataset** | Use Linear classifier on top layer | You're in trouble.. Try linear classifier from different stages |
+      | **quite a lot of data** | Finetune a few layers              | Finetune a large layers                  |
+
+  - Transfer learning is the normal not an exception.
+
+
+
+## 8. Deep learning software
+
+- This section changes a lot every year in CS231n due to rabid changes in the deep learning softwares.
+- CPU vs GPU
+  - GPU The graphics card was developed to render graphics to play games or make 3D media,. etc.
+    - NVIDIA vs AMD
+      - Deep learning choose NVIDIA over AMD GPU because NVIDIA is pushing research forward deep learning also makes it architecture more suitable for deep learning.
+  - CPU has fewer cores but each core is much faster and much more capable; great at sequential tasks. While GPUs has more cores but each core is much slower "dumber"; great for parallel tasks.
+  - GPU cores needs to work together. and has its own memory.
+  - Matrix multiplication is from the operations that are suited for GPUs. It has MxN independent operations that can be done on parallel.
+  - Convolution operation also can be paralyzed because it has independent operations.
+  - Programming GPUs frameworks:
+    - **CUDA** (NVIDIA only)
+      - Write c-like code that runs directly on the GPU.
+      - Its hard to build a good optimized code that runs on GPU. Thats why they provided high level APIs.
+      - Higher level APIs: cuBLAS, cuDNN, etc
+      - **CuDNN** has implemented back prop. , convolution, recurrent and a lot more for you!
+      - In practice you won't write a parallel code. You will use the code implemented and optimized by others!
+    - **OpenCl**
+      - Similar to CUDA, but runs on any GPU.
+      - Usually Slower .
+      - Haven't much support yet from all deep learning softwares.
+  - There are a lot of courses for learning parallel programming.
+  - If you aren't careful, training can bottleneck on reading dara and transferring to GPU. So the solutions are:
+    - Read all the data into RAM. # If possible
+    - Use SSD instead of HDD
+    - Use multiple CPU threads to prefetch data!
+      - While the GPU are computing, a CPU thread will fetch the data for you.
+      - A lot of frameworks implemented that for you because its a little bit painful!
+- **Deep learning Frameworks**
+  - Its super fast moving!
+  - Currently available frameworks:
+    - Tensorflow (Google)
+    - Caffe (UC Berkeley)
+    - Caffe2 (Facebook)
+    - Torch (NYU / Facebook)
+    - PyTorch (Facebook)
+    - Theano (U monteral) 
+    - Paddle (Baidu)
+    - CNTK (Microsoft)
+    - MXNet (Amazon)
+  - The instructor thinks that you should focus on Tensorflow and PyTorch.
+  - The point of deep learning frameworks:
+    - Easily build big computational graphs.
+    - Easily compute gradients in computational graphs.
+    - Run it efficiently on GPU (cuDNN - cuBLAS)
+  - Numpy doesn't run on GPU.
+  - Most of the frameworks tries to be like NUMPY in the forward pass and then they compute the gradients for you.
+- **Tensorflow (Google)**
+  - Code are two parts:
+    1. Define computational graph.
+    2. Run the graph and reuse it many times.
+  - Tensorflow uses a static graph architecture.
+  - Tensorflow variables live in the graph. while the placeholders are feed each run.
+  - Global initializer function initializes the variables that lives in the graph.
+  - Use predefined optimizers and losses.
+  - You can make a full layers with layers.dense function.
+  - **Keras** (High level wrapper):
+    - Keras is a layer on top pf Tensorflow, makes common things easy to do.
+    - So popular!
+    - Trains a full deep NN in a few lines of codes.
+  - There are a lot high level wrappers:
+    - Keras
+    - TFLearn
+    - TensorLayer
+    - tf.layers   `#Ships with tensorflow`
+    - tf-Slim 	  `#Ships with tensorflow`
+    - tf.contrib.learn   `#Ships with tensorflow`
+    - Sonnet `# New from deep mind`
+  - Tensorflow has pretrained models that you can use while you are using transfer learning.
+  - Tensorboard adds logging to record loss, stats. Run server and get pretty graphs!
+  - It has distributed code if you want to split your graph on some nodes.
+  - Tensorflow is actually inspired from Theano. It has the same inspirations and structure.
+
+
+- **PyTorch (Facebook)**
+
+  - Has three layers of abstraction:
+    - Tensor: `ndarray` but runs on GPU     `#Like numpy arrays in tensorflow`
+    - Variable: Node in a computational graphs; stores data and gradient 		`#Like Tensor, Variable, Placeholders`
+    - Module: A NN layer; may store state or learnable weights		`#Like tf.layers in tensorflow`
+  - In PyTorch the graphs runs in the same loop you are executing which makes it easier for debugging. This is called a dynamic graph.
+  - In PyTorch you can define your own autograd functions by writing forward and backward for tensors. Most of the times it will implemented for you.
+  - Torch.nn is a high level api like keras in tensorflow. You can create the models and go on and on.
+    - You can define your own nn module!
+  - Also Pytorch contains optimizers like tensorflow.
+  - It contains a data loader that wraps a Dataset and provides minbatches, shuffling and multithreading.
+  - PyTorch contains the best and super easy to use pretrained models
+  - PyTorch contains Visdom that are like tensorboard. but Tensorboard seems to be more powerful.
+  - PyTorch is new and still evolving compared to Torch. Its still in beta state.
+  - PyTorch is best for research.
+
+- Tensorflow builds the graph once, then run them many times (Called static graph)
+
+- In each PyTorch iteration we build a new graph (Called dynamic graph)
+
+- **Static vs dynamic graphs**:
+
+  - Optimization:
+
+    - With static graphs, framework can optimize the graph for you before it runs.
+
+  - Serialization
+
+    - **Static**: Once graph is built, can serialize it and run it without the code that built the graph. Ex use the graph in c++
+
+
+    - **Dynamic**: Always need to keep the code around.
+
+  - Conditional
+
+    - Is easier in dynamic graphs. And more complicated in static graphs.
+
+  - Loops:
+
+    - Is easier in dynamic graphs. And more complicated in static graphs.
+
+- Tensorflow fold make dynamic graphs easier in Tensorflow through dynamic batching.
+
+- Dynamic graph applications include: recurrent networks and recursive networks.
+
+- Caffe2 uses static graphs and can train model in python also works on IOS and Android
+
+- Tensorflow/Caffe2 are used a lot in production especially on mobile.
+
+## 9. CNN architectures
+
+
+
+<br><br>
+<br><br>
+These Notes was made by [Mahmoud Badry](mailto:mma18@fayoum.edu.eg) @2017
