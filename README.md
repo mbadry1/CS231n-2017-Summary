@@ -20,7 +20,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## 1. Introduction to CNN for visual recognition
+## 01. Introduction to CNN for visual recognition
 
 - A brief history of Computer vision starting from the late 1960s to 2017.
 - Computer vision problems includes image classification, object localization, object detection, and scene understanding.
@@ -30,7 +30,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## 2. Image classification
+## 02. Image classification
 
 - Image classification problem has a lot of challenges like illumination and viewpoints.
   - ![](Images/39.jpeg)
@@ -57,7 +57,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## 3. Loss function and optimization
+## 03. Loss function and optimization
 
 - In the last section we talked about linear classifier but we didn't discussed how we could **train** the parameters of that model to get best `w`'s and `b`'s.
 
@@ -165,7 +165,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## 4. Introduction to Neural network
+## 04. Introduction to Neural network
 
 - Computing the analytic gradient for arbitrary complex functions:
 
@@ -258,7 +258,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## 5. Convolutional neural networks (CNNs)
+## 05. Convolutional neural networks (CNNs)
 
 - Neural networks history:
   - First perceptron machine was developed by Frank Rosenblatt in 1957. It was used to recognize letters of the alphabet. Back propagation wasn't developed yet.
@@ -355,7 +355,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## 6. Training neural networks I
+## 06. Training neural networks I
 
 - As a revision here are the Mini batch stochastic gradient descent algorithm steps:
 
@@ -563,7 +563,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## 7. Training neural networks II
+## 07. Training neural networks II
 
 - **Optimization algorithms**:
 
@@ -738,7 +738,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 
 
-## 8. Deep learning software
+## 08. Deep learning software
 
 - This section changes a lot every year in CS231n due to rabid changes in the deep learning softwares.
 - CPU vs GPU
@@ -804,7 +804,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
     - TFLearn
     - TensorLayer
     - tf.layers   `#Ships with tensorflow`
-    - tf-Slim 	  `#Ships with tensorflow`
+    - tf-Slim   `#Ships with tensorflow`
     - tf.contrib.learn   `#Ships with tensorflow`
     - Sonnet `# New from deep mind`
   - Tensorflow has pretrained models that you can use while you are using transfer learning.
@@ -817,8 +817,8 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
   - Has three layers of abstraction:
     - Tensor: `ndarray` but runs on GPU     `#Like numpy arrays in tensorflow`
-    - Variable: Node in a computational graphs; stores data and gradient 		`#Like Tensor, Variable, Placeholders`
-    - Module: A NN layer; may store state or learnable weights		`#Like tf.layers in tensorflow`
+    - Variable: Node in a computational graphs; stores data and gradient 	`#Like Tensor, Variable, Placeholders`
+    - Module: A NN layer; may store state or learnable weights`#Like tf.layers in tensorflow`
   - In PyTorch the graphs runs in the same loop you are executing which makes it easier for debugging. This is called a dynamic graph.
   - In PyTorch you can define your own autograd functions by writing forward and backward for tensors. Most of the times it will implemented for you.
   - Torch.nn is a high level api like keras in tensorflow. You can create the models and go on and on.
@@ -863,7 +863,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 - Tensorflow/Caffe2 are used a lot in production especially on mobile.
 
-## 9. CNN architectures
+## 09. CNN architectures
 
 - This section talks about the famous CNN architectures. Focuses on CNN architectures that won [ImageNet](www.image-net.org/) competition since 2012.
 
@@ -1021,7 +1021,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
       - ![](Images/45.png)
 
-    - ```
+    - ```python
       # Instead of us trying To learn a new representation, We learn only Residual
       Y = (W2* RELU(W1x+b1) + b2) + X
       ```
@@ -1094,6 +1094,147 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
   - Trend towards extremely deep networks
   - In the last couple of years, some models all using the shortcuts like "ResNet" to eaisly flow the gradients.
 
-  <br><br>
-  <br><br>
-  These Notes was made by [Mahmoud Badry](mailto:mma18@fayoum.edu.eg) @2017
+
+
+## 10. Recurrent Neural networks
+
+- Vanilla Neural Networks "Feed neural networks", input of fixed size goes through some hidden units and then go to output. We call it a one to one network.
+
+- Recurrent Neural Networks RNN can work with Sequences:
+
+  - ![](Images/46.png)
+  - One to many
+    - Example: Image Captioning
+      - image ==> sequence of words
+  - Many to One
+    - Example: Sentiment Classification
+      - sequence of words ==> sentiment
+  - Many to many
+    - Example: Machine Translation
+      - seq of words in one language ==> seq of words in another language
+    - Example: Video classification on frame level
+
+- RNNs can also work for Non-Sequence Data (One to One problems)
+
+  - It worked in Digit classification through taking a series of “glimpses”
+    - “[Multiple Object Recognition with Visual Attention](https://arxiv.org/abs/1412.7755)”, ICLR 2015.
+  - It worked on generating images one piece at a time
+    - i.e generating a [captcha](http://ieeexplore.ieee.org/document/7966808/)
+
+- So what is a recurrent neural network?
+
+  - Recurrent core cell that take an input x and that cell has an internal state that are updated each time it reads an input.
+
+  - ![](Images/47.png)
+
+  - The RNN block should return a vector.
+
+  - We can process a sequence of vectors x by applying a recurrence formula at every time step:
+
+    - ```python
+      h[t] = fw (h[t-1], x[t])			# Where fw is some function with parameters W
+      ```
+
+    - The same function and the same set of parameters are used at every time step.
+
+  - (Vanilla) Recurrent Neural Network:
+
+    - ```
+      h[t] = tanh (W[h,h]*h[t-1] + W[x,h]*x[t])    # Then we save h[t]
+      y[t] = W[h,y]*h[t]
+      ```
+
+    - This is the simplest example of a RNN.
+
+  - RNN works on a sequence of related data.
+
+- Recurrent NN Computational graph:
+
+  - ![](Images/10.png)
+  - `h0` are initialized to zero.
+  - Gradient of `W` is the sum of all the `W` gradients that has been calculated!
+  - A many to many graph:
+    - ![](Images/11.png)
+    - Also the last is the sum of all losses and the weights of Y is one and is updated through summing all the gradients!
+  - A many to one graph:
+    - ![](Images/12.png)
+  - A one to many graph:
+    - ![](Images/13.png)
+  - sequence to sequence graph:
+    - ![](Images/14.png)
+    - Encoder and decoder philosophy.
+
+- Examples:
+
+  - Suppose we are building words using characters. We want a model to predict the next character of a sequence. Lets say that the characters are only `[h, e, l, o]` and the words are [hello]
+    - Training:
+      - ![](Images/15.png)
+      - Only the third prediction here is true. The loss needs to be optimized.
+      - We can train the network by feeding the whole word(s).
+    - Testing time:
+      - ![](Images/16.png)
+      - At test time we work with a character by character. The output character will be the next input with the other saved hidden activations.
+      - This [link](https://gist.github.com/karpathy/d4dee566867f8291f086) contains all the code but uses Truncated Backpropagation through time as we will discuss.
+
+- Backpropagation through time Forward through entire sequence to compute loss, then backward through entire sequence to compute gradient.
+
+  - But if we choose the whole sequence it will be so slow and take so much memory and will never converge!
+
+- So in practice people are doing "Truncated Backpropagation through time" as we go on we Run forward and backward through chunks of the sequence instead of whole sequence
+
+  - Then Carry hidden states forward in time forever, but only backpropagate for some smaller number of steps.
+
+- Example on image captioning:
+
+  - ![](Images/17.png)
+  - They use <End> token to finish running.
+  - The biggest dataset for image captioning is Microsoft COCO.
+
+- Image Captioning with Attention is a project in which when the RNN is generating captions, it looks at a specific part of the image not the whole image.
+
+  - Image Captioning with Attention technique is also used in "Visual Question Answering" problem
+
+- Multilayer RNNs is generally using some layers as the hidden layer that are feed into again. **LSTM** is a multilayer RNNs.
+
+- Backward flow of gradients in RNN can explode or vanish. Exploding is controlled with gradient clipping. Vanishing is controlled with additive interactions (LSTM)
+
+- LSTM stands for Long Short Term Memory. It was designed to help the vanishing gradient problem on RNNs.
+
+  - It consists of:
+    - f: Forget gate, Whether to erase cell
+    - i: Input gate, whether to write to cell
+    - g: Gate gate (?), How much to write to cell
+    - o: Output gate, How much to reveal cell
+  - ![](Images/18.png)
+  - ![](Images/18.1.png)
+  - The LSTM gradients are easily computed like ResNet
+  - The LSTM is keeping data on the long or short memory as it trains means it can remember not just the things from last layer but layers.
+
+- Highway networks is something between ResNet and LSTM that is still in research.
+
+- Better/simpler architectures are a hot topic of current research
+
+- Better understanding (both theoretical and empirical) is needed.
+
+- RNN is used for problems that uses sequences of related inputs more. Like NLP and Speech recognition.
+
+
+
+
+## 11. Detection and Segmentation
+
+
+
+
+
+
+
+
+
+
+
+
+
+<br><br>
+<br><br>
+These Notes was made by [Mahmoud Badry](mailto:mma18@fayoum.edu.eg) @2017
