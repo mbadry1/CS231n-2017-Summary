@@ -4,7 +4,25 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 ## Table of contents
 
-[TOC]
+* [Standford CS231n 2017 Summary](#standford-cs231n-2017-summary)
+   * [Table of contents](#table-of-contents)
+   * [Course Info](#course-info)
+   * [01. Introduction to CNN for visual recognition](#01-introduction-to-cnn-for-visual-recognition)
+   * [02. Image classification](#02-image-classification)
+   * [03. Loss function and optimization](#03-loss-function-and-optimization)
+   * [04. Introduction to Neural network](#04-introduction-to-neural-network)
+   * [05. Convolutional neural networks (CNNs)](#05-convolutional-neural-networks-cnns)
+   * [06. Training neural networks I](#06-training-neural-networks-i)
+   * [07. Training neural networks II](#07-training-neural-networks-ii)
+   * [08. Deep learning software](#08-deep-learning-software)
+   * [09. CNN architectures](#09-cnn-architectures)
+   * [10. Recurrent Neural networks](#10-recurrent-neural-networks)
+   * [11. Detection and Segmentation](#11-detection-and-segmentation)
+   * [12. Visualizing and Understanding](#12-visualizing-and-understanding)
+   * [13. Generative models](#13-generative-models)
+   * [14. Deep reinforcement learning](#14-deep-reinforcement-learning)
+   * [15. Efficient Methods and Hardware for Deep Learning](#15-efficient-methods-and-hardware-for-deep-learning)
+   * [16. Adversarial Examples and Adversarial Training](#16-adversarial-examples-and-adversarial-training)
 
 ## Course Info
 
