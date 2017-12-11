@@ -1278,7 +1278,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
       - **Nearest Neighbor** example:
 
         - ```
-          Input:   1  2				Output:   1  1  2  2
+          Input:   1  2               Output:   1  1  2  2
                    3  4                         1  1  2  2
                                                 3  3  4  4
                                                 3  3  4  4
@@ -1287,7 +1287,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
       - **Bed of Nails** example:
 
         - ```
-          Input:   1  2				Output:   1  0  2  0
+          Input:   1  2               Output:   1  0  2  0
                    3  4                         0  0  0  0
                                                 3  0  4  0
                                                 0  0  0  0
