@@ -817,7 +817,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
   - Has three layers of abstraction:
     - Tensor: `ndarray` but runs on GPU     `#Like numpy arrays in tensorflow`
-    - Variable: Node in a computational graphs; stores data and gradient 	`#Like Tensor, Variable, Placeholders`
+      - Variable: Node in a computational graphs; stores data and gradient `#Like Tensor, Variable, Placeholders`
     - Module: A NN layer; may store state or learnable weights`#Like tf.layers in tensorflow`
   - In PyTorch the graphs runs in the same loop you are executing which makes it easier for debugging. This is called a dynamic graph.
   - In PyTorch you can define your own autograd functions by writing forward and backward for tensors. Most of the times it will implemented for you.
@@ -1223,14 +1223,813 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 ## 11. Detection and Segmentation
 
+- So far we are talking about image classification problem. In this section we will talk about Segmentation, Localization, Detection.
+
+- **<u>Semantic Segmentation</u>**
+
+  - We want to Label each pixel in the image with a category label.
+
+  - ![](Images/19.png)
+
+  - As you see the cows in the image, Semantic Segmentation Don’t differentiate instances, only care about pixels.
+
+  - The first idea is to use a **sliding window**. We take a small window size and slide it all over the picture. For each window we want to label the center pixel.
+
+    - It will work but its not a good idea because it will be computational expensive!
+    - Very inefficient! Not reusing shared features between overlapping patches.
+    - In practice nobody uses this.
+
+  - The second idea is designing a network as a bunch of Convolutional layers to make predictions for pixels all at once!
+
+    - Input is the whole image. Output is the image with each pixel labeled.
+    - We need a lot of labeled data. And its very expensive data.
+    - It needs a deep Conv. layers.
+    - The loss is cross entropy between each pixel provided.
+    - Data augmentation are good here.
+    - The problem with this implementation that convolutions at original image resolution will be very expensive.
+    - So in practice we don't see something like this right now.
+
+  - The third idea is based on the last idea. The difference is that we are downsampling and upsampling inside the network.
+
+    - We downsample because using the whole image as it is very expensive. So we go on multiple layers downsampling and then upsampling in the end.
+
+    - Downsampling is an operation like Pooling and strided convolution.
+
+    - Upsampling is like "Nearest Neighbor" or "Bed of Nails" or "Max unpooling"
+
+      - **Nearest Neighbor** example:
+
+        - ```
+          Input:   1  2				Output:   1  1  2  2
+                   3  4                         1  1  2  2
+                                                3  3  4  4
+                                                3  3  4  4
+          ```
+
+      - **Bed of Nails** example:
+
+        - ```
+          Input:   1  2				Output:   1  0  2  0
+                   3  4                         0  0  0  0
+                                                3  0  4  0
+                                                0  0  0  0
+          ```
+
+      - **Max unpooling** is depending on the earlier steps that was made by max pooling. You fill the pixel where max pooling took place and then fill other pixels by zero.
+
+    - Max unpooling seems to be the best idea for upsampling.
+
+    - There are an idea of Learnable Upsampling called "**Transpose Convolution**"
+
+      - Rather than making a convolution we make the reverse. 
+      - Also called:
+        - Upconvolution.
+        - Fractionally strided convolution
+        - Backward strided convolution
+      - Learn the artimitic of the upsampling please refer to chapter 4 in this [paper](https://arxiv.org/abs/1603.07285).
+
+- **<u>Classification + Localization</u>**:
+
+  - In this problem we want to classify the main object in the image and its location as a rectangle.
+  - We assume there are one object.
+  - We will create a multi task NN. The architecture are as following:
+    - Convolution network layers connected to:
+      - FC layers that classify the object. `# The plain classification problem we know`
+      - FC layers that connects to a four numbers `(x,y,w,h)`
+        -  We treat Localization as a regression problem.
+  - This problem will have two losses:
+    - Softmax loss for classification
+    - Regression (Linear loss) for the localization (L2 loss)
+  - Loss = SoftmaxLoss + L2 loss
+  - Often the first Conv layers are pretrained NNs like AlexNet!
+  - This technique can be used in so many other problems like:  Human Pose Estimation.
+
+- **<u>Object Detection</u>**
+
+  - A core idea of computer vision. We will talk by details in this problem.
+  - The difference between "Classification + Localization" and this problem is that here we want to detect one or mode different objects and its locations!
+  - First idea is to use a sliding window
+    - Worked well and long time.
+    - The steps are:
+      - Apply a CNN to many different crops of the image, CNN classifies each crop as object or background.
+    - The problem is we need  to apply CNN to huge number of locations and scales, very computationally expensive!
+    - The brute force sliding window will make us take thousands of thousands of time.
+  - Region Proposals will help us deciding which region we should run our NN at:
+    - Find **blobby** image regions that are likely to contain objects.
+    - Relatively fast to run; e.g. Selective Search gives 1000 region proposals in a few seconds on CPU
+  - So now we can apply one of the Region proposals networks and then apply the first idea.
+  - There is another idea which is called R-CNN
+    - ![](Images/20.png)
+    - The idea is bad because its taking parts of the image -With Region Proposals- if different sizes and feed it to CNN after scaling them all to one size. Scaling is bad
+    - Also its very slow.
+  - Fast R-CNN is another idea that developed on R-CNN
+    - ![](Images/48.png)
+    - It uses one CNN to do everything.
+  - Faster R-CNN does its own region proposals by Inserting Region Proposal Network (RPN) to predict proposals from features.
+    - The fastest of the R-CNNs.
+  - Another idea is Detection without Proposals: YOLO / SSD
+    - YOLO stands for you only look once.
+    - YOLO/SDD is two separate algorithms.
+    - Faster but not as accurate.
+  - Takeaways
+    - Faster R-CNN is slower but more accurate.
+    - SSD/YOLO is much faster but not as accurate.
+
+- **<u>Denese Captioning</u>**
+
+  - Denese Captioning is "Object Detection + Captioning"
+  - Paper that covers this idea can be found [here](https://arxiv.org/abs/1511.07571).
+
+- **<u>Instance Segmentation</u>**
+
+  - This is like the full problem.
+  - ![](Images/49.png)
+  - Rather than we want to predict the bounding box, we want to know which pixel label but also distinguish them.
+  - There are a lot of ideas.
+  - There are a new idea "Mask R-CNN"
+    - Like R-CNN but inside it we apply the Semantic Segmentation
+    - There are a lot of good results out of this paper.
+    - It sums all the things that we have discussed in this lecture.
+    - Performance of this seems good.
+
+
+
+## 12. Visualizing and Understanding
+
+- We want to know what’s going on inside ConvNets?
+
+- People want to trust the black box (CNN) and know how it exactly works and give and good decisions.
+
+- A first approach is to visualize filters of the first layer.
+
+  - Maybe the shape of the first layer filter is 5 x 5 x 3, and the number of filters are 16. Then we will have 16 different "colored" filter images.
+  - It turns out that these filters learns primitive shapes and oriented edges like the human brain does.
+  - These filters really looks the same on each Conv net you will train, Ex if you tried to get it out of AlexNet, VGG, GoogleNet, or ResNet.
+  - This will tell you what is the first convolution layer is looking for in the image.
+
+- We can visualize filters from the next layers but they won't tell us anything.
+
+  - Maybe the shape of the first layer filter is 5 x 5 x 20, and the number of filters are 16. Then we will have 16*20 different "gray" filter images.
+
+- In AlexNet, there was some FC layers in the end. If we took the 4096-dimensional feature vector for an image, and collecting these feature vectors.
+
+  - If we made a nearest neighbors between these feature vectors and get the real images of these features we will get something very good compared with running the KNN on the images directly!
+  - ![](Images/21.png)
+  - This similarity tells us that these CNNs are really getting the semantic meaning of these images instead of on the pixels level!
+  - We can make a dimensionality reduction on the 4096 dimensional feature and compress it to 2 dimensions.
+    - This can be made by PCA, or t-SNE.
+    - t-SNE are used more with deep learning to visualize the data. Example can be found [here](http://cs.stanford.edu/people/karpathy/cnnembed/).
+
+- We can Visualize the activation maps.
+
+  - For example if CONV5 feature map is 128 x 13 x 13, We can visualize it as 128 13 x 13 gray-scale images.
+  - ![](Images/50.png)
+  - One of these features are activated corresponding to the input, so now we know that this particular map are looking for something.
+  - Its done by Yosinski et. More info are [here](http://yosinski.com/deepvis#toolbox).
+
+- There are something called **Maximally Activating Patches** that can help us visualize the intermediate features in Convnets
+
+  - The steps of doing this is as following:
+    - We choose a layer then a neuron
+      - Ex. We choose Conv5 in AlexNet which is 128 x 13 x 13 then pick channel (Neuron) 17/128
+    - Run many images through the network, record values of chosen channel.
+    - Visualize image patches that correspond to maximal activations.
+      - We will find that each neuron is looking into a specific part of the image.
+      - Extracted images are extracted using receptive field.
+
+- Another idea is **Occlusion Experiments**
+
+  - We mask part of the image before feeding to CNN, draw heat-map of probability (Output is true) at each mask location
+  - It will give you the most important parts of the image in which the Conv. Network has learned from.
+  - ![](Images/51.png)
+
+- **Saliency Maps** tells which pixels matter for classification
+
+  - Like Occlusion Experiments but with a completely different approach
+  - We Compute gradient of (unnormalized) class score with respect to image pixels, take absolute value and max over RGB channels. It will get us a gray image that represents the most important areas in the image.
+  - This can be used for Semantic Segmentation sometimes.
+
+- (guided) backprop Makes something like **Maximally Activating Patches** but unlike it gets the pixels in which we are caring of.
+
+  - In this technique choose a channel like Maximally Activating Patches and then compute gradient of neuron value with respect to image pixels
+  - Images come out nicer if you only backprop positive gradients through each RELU (guided backprop)
+
+- **Gradient Ascent**
+
+  - Generate a synthetic image that maximally activates a neuron.
+
+  - Reverse of gradient decent. Instead of taking the minimum it takes the maximum.
+
+  - We want to maximize the neuron with the input image. So here instead we are trying to learn the image that maximize the activation:
+
+    - ```python
+      # R(I) is Natural image regularizer, f(I) is the neuron value.
+      I *= argmax(f(I)) + R(I)
+      ```
+
+  - Steps of gradient ascent
+
+    - Initialize image to zeros.
+    - Forward image to compute current scores.
+    - Backprop to get gradient of neuron value with respect to image pixels.
+    - Make a small update to the image
+
+  - `R(I)` may equal to L2 of generated image.
+
+  - To get a better results we use a better regularizer:
+
+    - penalize L2 norm of image; also during optimization periodically:
+      - Gaussian blur image
+      - Clip pixels with small values to 0
+      - Clip pixels with small gradients to 0
+
+  - A better regularizer makes out images cleaner!
+
+  - ![](Images/22.png)
+
+  - The results in the latter layers seems to mean something more than the other layers.
+
+- We can fool CNN by using this procedure:
+
+  - Start from an arbitrary image.			`# Random picture based on nothing.`
+  - Pick an arbitrary class. `# Random class`
+  - Modify the image to maximize the class.
+  - Repeat until network is fooled.
+
+- Results on fooling the network is pretty surprising!
+
+  - ![](Images/23.png)
+  - For human eyes they are the same, but it fooled the network by adding just some noise!
+
+- **DeepDream**: Amplify existing features
+
+  - Google released deep dream on their website.
+  - What its actually doing is the same procedure as fooling the NN that we discussed, but rather than synthesizing an image to maximize a specific neuron, instead try to amplify the neuron activations at some layer in the network.
+  - Steps:
+    - Forward: compute activations at chosen layer.		`# form an input image (Any image)`
+    - Set gradient of chosen layer equal to its activation.
+      - Equivalent to `I* = arg max[I] sum(f(I)^2)`
+    - Backward: Compute gradient on image.
+    - Update image.
+  - The code of deep dream is online you can download and check it yourself.
+
+- **Feature Inversion**
+
+  - Gives us to know what types of elements parts of the image are captured at different layers in the network.
+  - Given a CNN feature vector for an image, find a new image that: 
+    - Matches the given feature vector.
+    - *looks natural* (image prior regularization) 
+
+- **Texture Synthesis**
+
+  - Old problem in computer graphics.
+  - Given a sample patch of some texture, can we generate a bigger image of the same texture?
+  - There is an algorithm which doesn't depend on NN:
+    - Wei and Levoy, Fast Texture Synthesis using Tree-structured Vector Quantization, SIGGRAPH 2000
+    - Its a really simple algorithm
+  - The idea here is that this is an old problem and there are a lot of algorithms that has already solved it but simple algorithms doesn't work well on complex textures!
+  - An idea of using NN has been proposed on 2015 based on gradient ascent and called it "Neural Texture Synthesis"
+    - It depends on something called Gram matrix.
+
+- Neural Style Transfer =  Feature + Gram Reconstruction
+
+  - Gatys, Ecker, and Bethge, Image style transfer using Convolutional neural networks, CVPR 2016
+  - Implementation by pytorch [here](https://github.com/jcjohnson/neural-style).
+
+- Style transfer requires many forward / backward passes through VGG; very slow!
+
+  - Train another neural network to perform style transfer for us!
+  - Fast Style Transfer is the solution.
+  - Johnson, Alahi, and Fei-Fei, Perceptual Losses for Real-Time Style Transfer and Super-Resolution, ECCV 2016
+  - https://github.com/jcjohnson/fast-neural-style
+
+- There are a lot of work on these style transfer and it continues till now!
+
+- Summary:
+
+  - Activations: Nearest neighbors, Dimensionality reduction, maximal patches, occlusion
+  - Gradients: Saliency maps, class visualization, fooling images, feature inversion
+  - Fun: DeepDream, Style Transfer
 
 
 
 
+## 13. Generative models 
+
+- Generative models are type of Unsupervised learning.
+
+- Supervised vs Unsupervised Learning:
+
+  - |                | Supervised Learning                      | Unsupervised Learning                    |
+    | -------------- | ---------------------------------------- | ---------------------------------------- |
+    | Data structure | Data: (x, y), and x is data, y is label  | Data: x, Just data, no labels!           |
+    | Data price     | Training data is expensive in a lot of cases. | Training data are cheap!                 |
+    | Goal           | Learn a function to map x -> y           | Learn some underlying hidden structure of the data |
+    | Examples       | Classification, regression, object detection, semantic segmentation, image captioning | Clustering, dimensionality reduction, feature learning, density estimation |
+
+- Autoencoders are a Feature learning technique.
+
+  - ![](Images/24.png)
+  - It contains an encoder and a decoder. The encoder downsamples the image while the decoder upsamples the features.
+  - The loss are L2 loss.
+
+- Density estimation is where we want to learn/estimate the underlaying distribution for the data!
+
+- There are a lot of research open problems in unsupervised learning compared with supervised learning!
+
+- **Generative Models**
+
+  - Given training data, generate new samples from same distribution.
+  - Addresses density estimation, a core problem in unsupervised learning.
+  - We have different ways to do this:
+    - Explicit density estimation: explicitly define and solve for the learning model.
+    - Learn model that can sample from the learning model without explicitly defining it.
+  - Why Generative Models?
+    - Realistic samples for artwork, super-resolution, colorization, etc
+    - Generative models of time-series data can be used for simulation and planning (reinforcement learning applications!)
+    - Training generative models can also enable inference of latent representations that can be useful as general features
+  - Taxonomy of Generative Models:
+    - ![](Images/52.png)
+  - In this lecture we will discuss: PixelRNN/CNN, Variational Autoencoder, and GANs as they are the popular models in research now.
+
+- **PixelRNN** and **PixelCNN**
+
+  - In a full visible belief network we use the chain rule to decompose likelihood of an image x into product of 1-d distributions
+    - `p(x) = sum(p(x[i]| x[1]x[2]....x[i-1]))`
+    - Where p(x) is the Likelihood of image x and x[i] is Probability of i’th pixel value given all previous pixels.
+  - To solve the problem we need to maximize the likelihood of training data but the distribution is so complex over pixel values.
+  - Also we will need to define ordering of <u>previous pixels</u>.
+  - PixelRNN
+    - Founded by [van der Oord et al. 2016]
+    - Dependency on previous pixels modeled using an RNN (LSTM)
+    - Generate image pixels starting from corner
+    - Drawback: sequential generation is slow! because you have to generate pixel by pixel!
+  - PixelCNN
+    - Also Founded by [van der Oord et al. 2016]
+    - Still generate image pixels starting from corner.
+    - Dependency on previous pixels now modeled using a CNN over context region
+    - Training is faster than PixelRNN (can parallelize convolutions since context region values known from training images)
+    - Generation must still proceed sequentially still slow.
+  - There are some tricks to improve PixelRNN & PixelCNN.
+  - PixelRNN and PixelCNN can generate good samples and are still active area of research.
+
+- **Autoencoders**
+
+  - Unsupervised approach for learning a lower-dimensional feature representation from unlabeled training data.
+  - Consists of Encoder and decoder.
+  - The encoder:
+    - Converts the input x to the features z. z should be smaller than x to get only the important values out of the input. We can call this dimensionality reduction.
+    - The encoder can be made with:
+      - Linear or non linear layers (earlier days days)
+      - Deep fully connected NN (Then)
+      - RELU CNN (Currently we use this on images)
+  - The decoder:
+    - We want the encoder to map the features we have produced to output something similar to x or the same x.
+    - The decoder can be made with the same techniques we made the encoder and currently it uses a RELU CNN.
+  - The encoder is a conv layer while the decoder is deconv layer! Means Decreasing and then increasing.
+  - The loss function is L2 loss function:
+    - `L[i] = |y[i] - y'[i]|^2`
+      - After training we though away the decoder.`# Now we have the features we need`
+  - We can use this encoder we have to make a supervised model.
+    - The value of this it can learn a good feature representation to the input you have.
+    - A lot of times we will have a small amount of data to solve problem. One way to tackle this is to use an Autoencoder that learns how to get features from images and train your small dataset on top of that model.
+  - The question is can we generate data (Images) from this Autoencoder?
+
+- **Variational Autoencoders (VAE)**
+
+  - Probabilistic spin on Autoencoders - will let us sample from the model to generate data!
+  - We have z as the features vector that has been formed using the encoder.
+  - We then choose prior p(z) to be simple, e.g. Gaussian. 
+    - Reasonable for hidden attributes: e.g. pose, how much smile.
+  - Conditional p(x|z) is complex (generates image) => represent with neural network
+  - But we cant compute integral for P(z)p(x|z)dz as the following equation:
+    - ![](Images/25.png)
+  - After resolving all the equations that solves the last equation we should get this:
+    - ![](Images/26.png)
+  - Variational Autoencoder are an approach to generative models but Samples blurrier and lower quality compared to state-of-the-art (GANs)
+  - Active areas of research:
+    - More flexible approximations, e.g. richer approximate posterior instead of diagonal Gaussian
+    - Incorporating structure in latent variables
+
+- **Generative Adversarial Networks (GANs)**
+
+  - GANs don’t work with any explicit density function!
+
+  - Instead, take game-theoretic approach: learn to generate from training distribution through 2-player game.
+
+  - Yann LeCun, who oversees AI research at Facebook, has called GANs:
+
+    - > The coolest idea in deep learning in the last 20 years
+
+  - Problem: Want to sample from complex, high-dimensional training distribution. No direct way to do this as we have discussed!
+
+  - Solution: Sample from a simple distribution, e.g. random noise. Learn transformation to training distribution.
+
+  - So we create a noise image which are drawn from simple distribution feed it to NN we will call it a generator network that should learn to transform this into the distribution we want.
+
+  - Training GANs: Two-player game:
+
+    - **Generator network**: try to fool the discriminator by generating real-looking images.
+    - **Discriminator network**: try to distinguish between real and fake images.
+
+  - If we are able to train the Discriminator well then we can train the generator to generate the right images.
+
+  - The loss function of GANs as minimax game are here:
+
+    - ![](Images/27.png)
+
+  - The label of the generator network will be 0 and the real images are 1.
+
+  - To train the network we will do:
+
+    - Gradient ascent on discriminator.
+    - Gradient ascent on generator but with different loss.
+
+  - You can read the full algorithm with the equations here:
+
+    - ![](Images/28.png)
+
+  - Aside: Jointly training two networks is challenging, can be unstable. Choosing objectives with better loss landscapes helps training is an active area of research.
+
+  - Convolutional Architectures:
+
+    - Generator is an upsampling network with fractionally-strided convolutions Discriminator is a Convolutional network.
+    - Guidelines for stable deep Conv GANs:
+      - Replace any pooling layers with strided convs (discriminator) and fractional-strided convs with (Generator).
+      - Use batch norm for both networks.
+      - Remove fully connected hidden layers for deeper architectures.
+      - Use RELU activation in generator for all layers except the output which uses Tanh
+      - Use leaky RELU in discriminator for all the layers.
+
+  - 2017 is the year of the GANs! it has exploded and there are some really good results.
+
+  - Active areas of research also is GANs for all kinds of applications.
+
+  - The GAN zoo can be found here: https://github.com/hindupuravinash/the-gan-zoo
+
+  - Tips and tricks for using GANs: https://github.com/soumith/ganhacks
+
+  - NIPS 2016 Tutorial GANs: https://www.youtube.com/watch?v=AJVyzd0rqdc
 
 
 
+## 14. Deep reinforcement learning
 
+- This section contains a lot of math.
+- Reinforcement learning problems are involving an agent interacting with an environment, which provides numeric reward signals.
+- Steps are:
+  - Environment --> State `s[t]` --> Agent --> Action `a[t]` --> Environment --> `Reward r[t]` + Next state `s[t+1]` --> Agent --> and so on..
+- Our goal is learn how to take actions in order to maximize reward.
+- An example is Robot Locomotion:
+  - Objective: Make the robot move forward
+  - State: Angle and position of the joints
+  - Action: Torques applied on joints
+  - 1 at each time step upright + forward movement
+- Another example is Atari Games:
+  - Deep learning has a good state of art in this problem.
+  - Objective: Complete the game with the highest score.
+  - State: Raw pixel inputs of the game state.
+  - Action: Game controls e.g. Left, Right, Up, Down
+  - Reward: Score increase/decrease at each time step
+- Go game is another example which AlphaGo team won in the last year (2016) was a big achievement for AI and deep learning because the problem was so hard.
+- We can mathematically formulate the RL (reinforcement learning) by using <u>**Markov Decision Process**</u>
+- **Markov Decision Process**
+  - Defined by (`S`, `A`, `R`, `P`, `Y`) where:
+    - `S`: set of possible states.
+    - `A`: set of possible actions
+    - `R`: distribution of reward given (state, action) pair
+    - `P`: transition probability i.e. distribution over next state given (state, action) pair
+      - `Y`: discount factor	`# How much we value rewards coming up soon verses later on.`
+  - Algorithm:
+    - At time step `t=0`, environment samples initial state `s[0]`
+    - Then, for t=0 until done:
+      - Agent selects action `a[t]`
+      - Environment samples reward from `R` with (`s[t]`, `a[t]`)
+      - Environment samples next state from `P` with (`s[t]`, `a[t]`)
+      - Agent receives reward `r[t]` and next state `s[t+1]`
+  - A policy `pi`  is a function from S to A that specifies what action to take in each state.
+  - Objective: find policy `pi*` that maximizes cumulative discounted reward: `Sum(Y^t * r[t], t>0)`
+  - For example:
+    - ![](Images/29.png)
+  - Solution would be:
+    - ![](Images/30.png)
+- The value function at state `s`, is the expected cumulative reward from following the policy from state `s`:
+  - `V[pi](s) = Sum(Y^t * r[t], t>0) given s0 = s, pi`
+- The Q-value function at state s and action `a`, is the expected cumulative reward from taking action `a` in state `s` and then following the policy:
+  - `Q[pi](s,a) = Sum(Y^t * r[t], t>0) given s0 = s,a0 = a, pi`
+- The optimal Q-value function `Q*` is the maximum expected cumulative reward achievable from a given (state, action) pair:
+  - `Q*[s,a] = Max(for all of pi on (Sum(Y^t * r[t], t>0) given s0 = s,a0 = a, pi))`
+- Bellman equation
+  - Important thing is RL.
+  - Given any state action pair (s,a) the value of this pair is going to be the reward that you are going to get r plus the value of the state that you end in.
+  - `Q*[s,a] = r + Y * max Q*(s',a') given s,a  # Hint there is no policy in the equation`
+  - The optimal policy `pi*` corresponds to taking the best action in any state as specified by `Q*`
+- We can get the optimal policy using the value iteration algorithm that uses the Bellman equation as an iterative update
+  - ![](Images/31.png)
+- Due to the huge space dimensions in real world applications we will use a function approximator to estimate `Q(s,a)`. E.g. a neural network! this is called **Q-learning**
+  - Any time we have a complex function that we cannot represent we use Neural networks!
+- **Q-learning**
+  - The first deep learning algorithm that solves the RL.
+  - Use a function approximator to estimate the action-value function
+  - If the function approximator is a deep neural network => deep q-learning
+  - The loss function:
+    - ![](Images/32.png)
+- Now lets consider the "Playing Atari Games" problem:
+  - Our total reward are usually the reward we are seeing in the top of the screen.
+  - Q-network Architecture:
+    - ![](Images/33.png)
+  - Learning from batches of consecutive samples is a problem. If we recorded a training data and set the NN to work with it, if the data aren't enough we will go to a high bias error. so we should use "experience replay" instead of consecutive samples where the NN will try the game again and again until it masters it.
+  - Continually update a replay memory table of transitions (`s[t]` , `a[t]` , `r[t]` , `s[t+1]`) as game (experience) episodes are played.
+  - Train Q-network on random minibatches of transitions from the replay memory, instead of consecutive samples.
+  - The full algorithm:
+    - ![](Images/34.png)
+  - A video that demonstrate the algorithm on Atari game can be found here: "https://www.youtube.com/watch?v=V1eYniJ0Rnk"
+- **Policy Gradients**
+  - The second deep learning algorithm that solves the RL.
+  - The problem with Q-function is that the Q-function can be very complicated.
+    - Example: a robot grasping an object has a very high-dimensional state.
+    - But the policy can be much simpler: just close your hand.
+  - Can we learn a policy directly, e.g. finding the best policy from a collection of policies?
+  - Policy Gradients equations:
+    - ![](Images/35.png)
+  - Converges to a local minima of `J(ceta)`, often good enough!
+  - REINFORCE algorithm is the algorithm that will get/predict us the best policy
+  - Equation and intuition of the Reinforce algorithm:
+    - ![](Images/36.png)
+    - the problem was high variance with this equation can we solve this?
+    - variance reduction is an active research area!
+  - Recurrent Attention Model (RAM) is an algorithm that are based on REINFORCE algorithm and is used for image classification problems:
+    - Take a sequence of “glimpses” selectively focusing on regions of the image, to predict class
+      - Inspiration from human perception and eye movements.
+      - Saves computational resources => scalability
+        - If an image with high resolution you can save a lot of computations
+      - Able to ignore clutter / irrelevant parts of image
+    - RAM is used now in a lot of tasks: including fine-grained image recognition, image captioning, and visual question-answering
+  - AlphaGo are using a mix of supervised learning and reinforcement learning, It also using policy gradients.
+- A good course from Standford on deep reinforcement learning
+  - http://web.stanford.edu/class/cs234/index.html
+  - https://www.youtube.com/playlist?list=PLkFD6_40KJIwTmSbCv9OVJB3YaO4sFwkX
+- A good course on deep reinforcement learning (2017)
+  - http://rll.berkeley.edu/deeprlcourse/
+  - https://www.youtube.com/playlist?list=PLkFD6_40KJIznC9CDbVTjAF2oyt8_VAe3
+- A good article
+  - https://www.kdnuggets.com/2017/09/5-ways-get-started-reinforcement-learning.html
+
+
+
+## 15. Efficient Methods and Hardware for Deep Learning
+
+- The original lecture was given by Song Han a PhD Candidate at standford.
+- Deep Conv nets, Recurrent nets, and deep reinforcement learning are shaping a lot of applications and changing a lot of our lives.
+  - Like self driving cars, machine translations, alphaGo and so on.
+- But the trend now says that if we want a high accuracy we need a larger (Deeper) models.
+  - The model size in ImageNet competation from 2012 to 2015 has increased 16x to achieve a high accurecy.
+  - Deep speech 2 has 10x training operations than deep speech 1 and thats in only one year! `# At Baidu`
+- There are three challenges we got from this
+  - **Model Size**
+    - Its hard to deploy larger models on our PCs, mobiles, or cars.
+  - **Speed**
+    - ResNet152 took 1.5 weeks to train and give the 6.16% accurecy!
+    - Long training time limits ML researcher’s productivity
+  - **Energy Efficiency**
+    - AlphaGo: 1920 CPUs and 280 GPUs. $3000 electric bill per game
+    - If we use this on our mobile it will drain the battery.
+    - Google mentioned in thier blog if all the users used google speech for 3 minutes, they have to double thier data-center!
+    - Where is the Energy Consumed?
+      - larger model => more memory reference => more energy
+- We can improve the Efficiency of Deep Learning by Algorithm-Hardware Co-Design.
+  - From both the hardware and the algorithm perspectives.
+- Hardware 101: the Family
+  - **General Purpose**			`# Used for any hardware`
+    - CPU				`# Latency oriented, Single strong threaded like a single elepahnt`
+      - GPU			`# Throughput oriented, So many small threads like a lot of ants`
+    - GPGPU
+      - **Specialized HW**		`#Tuned for a domain of applications`
+        - FPGA# Programmable logic, Its cheaper but less effiecnet`
+        - ASIC`# Fixed logic, Designed for a certian applications (Can be designed for deep learning applications)`
+- Hardware 101: Number Representation
+  - Numbers in computer are represented with a discrete memory.
+  - Its very good and energy efficent for hardware to go from 32 bit to 16 bit in float point operations.
+- Part 1: **<u>Algorithms for Efficient Inference</u>**
+  - **Pruning neural networks**
+    - Idea is can we remove some of the weights/neurons and the NN still behave the same?
+    - In 2015 Han made AlexNet parameters from 60 million to 6 Million! by using the idea of Pruning.
+    - Pruning can be applied to CNN and RNN, iteratively it will reach the same accurecy as the original.
+    - Pruning actually happends to humans:
+      - Newborn(50 Trillion Synapses) ==> 1 year old(1000 Trillion Synapses) ==> Adolescent(500 Trillion Synapses)
+    - Algorithm:
+      1. Get Trained network.
+      2. Evaluate importance of neurons.
+      3. Remove the least important neuron.
+      4. Fine tune the network.
+      5. If we need to continue Pruning we go to step 2 again else we stop.
+  - **Weight Sharing**
+    - The idea is that we want to make the numbers is our models less.
+    - Trained Quantization:
+      - Example: all weight values that are 2.09, 2.12, 1.92, 1.87 will be replaced by 2
+      - To do that we can make k means clustering on a filter for example and reduce the numbers in it. By using this we can also reduce the number of operations that are used from calculating the gradients.
+      - After Trained Quantization the Weights are Discrete.
+      - Trained Quantization can reduce the number of bits we need for a number in each layer significantly.
+    - Pruning + Trained Quantization can Work Together to reduce the size of the model.
+    - Huffman Coding
+      - We can use Huffman Coding to reduce/compress the number of bits of the weight.
+      - In-frequent weights: use more bits to represent.
+      - Frequent weights: use less bits to represent.
+    - Using Pruning + Trained Quantization + Huffman Coding is called deep compression.
+      - ![](Images/37.png)
+      - ![](Images/38.png)
+      - **SqueezeNet**
+        - All the models we have talked about till now was using a pretrained models. Can we make a new arcitecutre that saves memory and computations?
+        - SqueezeNet gets the alexnet accurecy with 50x fewer parameters and 0.5 model size.
+      - SqueezeNet can even be further compressed by applying deep compression on them.
+      - Models are now more energy efficient and has speed up a lot.
+      - Deep compression was applied in Industry through facebook and Baidu.
+  - **Quantization**
+    - Algorithm (Quantizing the Weight and Activation):
+      - Train with float.
+      - Quantizing the weight and activation:
+        - Gather the statistics for weight and activation.
+        - Choose proper radix point position.
+      - Fine-tune in float format.
+      - Convert to fixed-point format.
+  - **Low Rank Approximation**
+    - Is another size reduction algorithm that are used for CNN.
+    - Idea is decompose the conv layer and then try both of the composed layers.
+  - **Binary / Ternary Net**
+    - Can we only use three numbers to represent weights in NN?
+    - The size will be much less with only -1, 0, 1.
+    - This is a new idea that was published in 2017 "Zhu, Han, Mao, Dally. Trained Ternary Quantization, ICLR’17"
+    - Works after training.
+    - They have tried it on AlexNet and it has reached almost the same error as AlexNet.
+    - Number of operation will increase per register: https://xnor.ai/
+  - **Winograd Transformation**
+    - Based on 3x3 WINOGRAD Convolutions which makes less operations than the ordiany convolution
+    - cuDNN 5 uses the WINOGRAD Convolutions which has improved the speed.
+- Part 2: **<u>Hardware for Efficient Inference</u>**
+  - There are a lot of ASICs that we developed for deep learning. All in which has the same goal of minimize memory access.
+    - Eyeriss MIT
+    - DaDiannao
+    - TPU Google (Tensor processing unit)
+      - It can be put to replace the disk in the server.
+      - Up to 4 cards per server.
+      - Power consumed by this hardware is a lot less than a GPU and the size of the chip is less.
+    - EIE Standford
+      - By Han at 2016 [et al. ISCA’16]
+      - We don't save zero weights and make quantization for the numbers from the hardware.
+      - He says that EIE has a better Throughput and energy efficient.
+- Part 3: **<u>Algorithms for Efficient Training</u>**
+  - **Parallelization**
+    - **Data Parallel** – Run multiple inputs in parallel
+      - Ex. Run two images in the same time!
+      - Run multiple training examples in parallel.
+      - Limited by batch size.
+      - Gradients have to be applied by a master node.
+    - **Model Parallel**
+      - Split up the Model – i.e. the network
+      - Split model over multiple processors By layer.
+    - Hyper-Parameter Parallel
+      - Try many alternative networks in parallel.
+      - Easy to get 16-64 GPUs training one model in parallel.
+  - **Mixed Precision** with FP16 and FP32
+    - We have discussed that if we use 16 bit real numbers all over the model the energy cost will be less by x4.
+    - Can we use a model entirely with 16 bit number? We can partially do this with mixed FP16 and FP32. We use 16 bit everywhere but at some points we need the FP32.
+    - By example in multiplying FP16 by FP16 we will need FP32.
+    - After you train the model you can be a near accuracy of the famous models like AlexNet and ResNet.
+  - **Model Distillation**
+    - The question is can we use a senior (Good) trained neural network(s) and make them guide a student (New) neural network?
+    - For more information look at Hinton et al. Dark knowledge / Distilling the Knowledge in a Neural Network
+  - DSD: Dense-Sparse-Dense Training
+    - Han et al. “DSD: Dense-Sparse-Dense Training for Deep Neural Networks”, ICLR 2017
+    - Has a better regularization.
+    - The idea is Train the model lets call this the Dense, we then apply Pruning to it lets call this sparse.
+    - DSD produces same model architecture but can find better optimization solution arrives at better local minima, and achieves higher prediction accuracy.
+    - After the above two steps we go connect the remain connection and learn them again (To dense again).
+    - This improves the performace a lot in many deep learning models.
+- Part 4: **<u>Hardware for Efficient Training</u>**
+  - GPUs for training:
+    - Nvidia PASCAL GP100 (2016)
+    - Nvidia Volta GV100 (2017)
+      - Can make mixed precision operations!
+      - So powerful.
+      - The new neclar bomb!
+  - Google Announced "Google Cloud TPU" on May 2017!
+    - Cloud TPU delivers up to 180 teraflops to train and run machine learning models.
+    - One of our new large-scale translation models used to take a full day to train on 32 of the best commercially-available GPUs—now it trains to the same accuracy in an afternoon using just one eighth of a TPU pod.
+- We have moved from PC Era ==> Mobile-First Era ==> AI-First Era
+
+
+
+## 16. Adversarial Examples and Adversarial Training
+
+- **<u>What are adversarial examples?</u>**
+  - Since 2013, deep neural networks have matched human performance at..
+    - Face recognition
+    - Object recognition
+    - Captcha recognition
+      - Because its accuracy was higher than humans, Websites tried to find another solution than Captcha.
+    - And other tasks..
+  - Before 2013 no body was surprised if they saw a computer made a mistake! But now the deep learning exists and its so important to know the problems and the causes.
+  - Adversarial are problems and unusual mistake that deep learning make.
+  - This topic wasn't hot until deep learning can now do better and better than human!
+  - An adversarial is an example that has been carefully computed to to be misclassified.
+  - In a lot of cases the adversarial image isn't changed much compared to the original image from the human perspective.
+  - History of recent papers:
+    - Biggio [2013](https://link.springer.com/chapter/10.1007/978-3-642-40994-3_25): fool neural nets.
+    - Szegedy et al 2013: fool ImageNet classifiers imperceptibly
+    - Goodfellow et al [2014](https://arxiv.org/abs/1412.6572): cheap, closed form attack.
+  - So the first story was in 2013. When Szegedy had a CNN that can classify images very well.
+    - He wanted to understand more about how CNN works to improve it.
+    - He give an image of an object and by using gradient ascent he tried to update the images so that it can be another object.
+    - Strangely he found that the result image hasn't changed much from the human perspective!
+    - If you tried it you won't notify any change and you will think that this is a bug! but it isn't if you go for the image you will notice that they are completely different!
+  - These mistakes can be found in almost any deep learning algorithm we have studied!
+    - It turns out that RBF (Radial Basis Network) can resist this.
+    - Deep Models for Density Estimation can resist this.
+  - Not just for neural nets can be fooled:
+    - Linear models
+      - Logistic regression
+      - Softmax regression
+      - SVMs
+    - Decision trees 
+    - Nearest neighbors
+- **<u>Why do adversarial happen?</u>**
+  - In the process in trying to understand what is happening, in 2016 they thought it was from overfitting models in the high dimensional data case.
+    - Because in such high dimensions we could have some random errors which can be found.
+    - So if we trained a model with another parameters it should not make the same mistake?
+    - They found that not right. Models are reaching to the same mistakes so it doesn't mean its overfitting.
+  - In the previous mentioned experiment the found that the problem is caused by systematic thing not a random.
+    - If they add some vector to an example it would misclassified to any model.
+  - Maybe they are coming from underfitting not overfitting.
+  - Modern deep nets are very piecewise linear
+    - Rectified linear unit
+    - Carefully tuned sigmoid  `# Most of the time we are inside the linear curve`
+    - Maxout
+    - LSTM
+  - Relation between the parameter and the output are non linear because it's multiplied together thats what make training NN difficult, while mapping from linear from input and output are linear and much easier.
+- **<u>How can adversarial be used to compromise machine learning systems?</u>**
+  - If we are experimenting how easy a NN to fool, We want to make sure we are actually fooling it not just changing the output class, and if we are attackers we want to make this behavior to the NN (Get hole).
+  - When we build Adversarial example we use the max norm constrain to perturbation.
+  - The fast gradient sign method:
+    - This method comes from the fact that almost all NN are using a linear activations (Like RELU) the assumption we have told before.
+    - No pixel can be changed more than some amount epsilon.
+    - Fast way is to take the gradient of the cost you used to train the network with respect to the input and then take the sign of that gradient multiply this by epsilon.
+    - Equation:
+      - `Xdash = x + epslion * (sign of the gradient)`
+      - Where Xdash is the adversarial example and x is the normal example
+    - So it can be detected by just using the sign (direction) and some epsilon.
+  - Some attacks are based on ADAM optimizer.
+  - Adversarial examples are not random noises!
+  - NN are trained on some distribution and behaves well in that distribution. But if you shift this distribution the NN won't answer the right answers. They will be so easy to fool.
+  - deep RL can also be fooled.
+  - Attack of the weights:
+    - In linear models, We can take the learned weights image, take the signs of the image and add it to any example to force the class of the weights to be true. Andrej Karpathy, "Breaking Linear Classifiers on ImageNet"
+  - It turns out that some of the linaer models performs well (We cant get advertisal from them easily)
+    - In particular Shallow RBFs network resist adversarial perturbation # By The fast gradient sign method
+      - The problem is RBFs doesn't get so much accuracy on the datasets because its just a shallow model and if you tried to get this model deeper the gradients will become zero in almost all the layers.
+      - RBFs are so difficult to train even with batch norm. algorithm.
+      - Ian thinks if we have a better hyper parameters or a better optimization algorithm that gradient decent we will be able to train RBFs and solve the adversarial problem!
+  - We also can use another model to fool current model. Ex use an SVM to fool a deep NN.
+    - For more details follow the paper: "Papernot 2016"
+  - Transferability Attack
+    1. Target model with unknown weights, machine learning algorithm, training set; maybe non differentiable
+    2. Make your training set from this model using inputs from you, send them to the model and then get outputs from the model
+    3. Train you own model. "Following some table from Papernot 2016"
+    4. Create an Adversarial example on your model.
+    5. Use these examples against the model you are targeting.
+    6. You are almost likely to get good results and fool this target!
+  - In Transferability Attack to increase your probability by 100% of fooling a network, You can make more than just one model may be five models and then apply them. "(Liu et al, 2016)"
+  - Adversarial Examples are works for human brain also! for example images that tricks your eyes. They are a lot over the Internet.
+  - In practice some researches have fooled real models from (MetaMind, Amazon, Google)
+  - Someone has uploaded some perturbation into facebook and facebook was fooled :D
+- **<u>What are the defenses?</u>**
+  - A lot of defenses Ian tried failed really bad! Including:
+    - Ensembles
+    - Weight decay
+    - Dropout
+    - Adding noise at train time or at test time
+    - Removing perturbation with an autoencoder 
+    - Generative modeling
+  - Universal approximator theorem
+    - Whatever shape we would like our classification function to have a big enough NN can make it.
+    - We could have train a NN that detects the Adversarial!
+  - Linear models & KNN can be fooled easier than NN. Neural nets can actually become more secure than other models. Adversarial trained neural nets have the best empirical success rate on adversarial examples of any machine learning model.
+    - Deep NNs can be trained with non linear functions but we will just need a good optimization technique or solve the problem with using such linear activator like "RELU"
+- **<u>How to use adversarial examples to improve machine learning, even when there is no adversary?</u>**
+  - Universal engineering machine (model-based optimization)		`#Is called Universal engineering machine by Ian`
+    - For example:
+      - Imagine that we want to design a car that are fast.
+      - We trained a NN to look at the blueprints of a car and tell us if the blueprint will make us a fast car or not.
+      - The idea here is to optimize the input to the network so that the output will max this could give us the best blueprint for a car!
+    - Make new inventions by finding input that maximizes model’s predicted performance.
+    - Right now by using adversarial examples we are just getting the results we don't like but if we have solve this problem we can have the fastest car, the best GPU, the best chair, new drugs.....
+  - The whole adversarial is an active area of research especially defending the network!
+- Conclusion
+  - Attacking is easy
+  - Defending is difficult
+  - Adversarial training provides regularization and semi-supervised learning 
+  - The out-of-domain input problem is a bottleneck for model-based optimization generally
+- There are a Github code that can make you learn everything about adversarial by code (Built above tensorflow):
+  - An adversarial example library for constructing attacks, building defenses, and benchmarking both: https://github.com/tensorflow/cleverhans
 
 
 
