@@ -1118,7 +1118,7 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 - Vanilla Neural Networks "Feed neural networks", input of fixed size goes through some hidden units and then go to output. We call it a one to one network.
 
-- Recurrent Neural Networks RNN can work with Sequences:
+- Recurrent Neural Networks RNN Models:
 
   - ![](Images/46.png)
   - One to many
