@@ -30,6 +30,10 @@ After watching all the videos of the famous Standford's [CS231n](http://cs231n.s
 
 - Lectures link: https://www.youtube.com/playlist?list=PLC1qU-LWwrF64f4QKQT-Vg5Wr4qEE1Zxk
 
+- Full syllabus link: http://cs231n.stanford.edu/syllabus.html
+
+- Assignments solutions: https://github.com/Burton2000/CS231n-2017
+
 - Number of lectures: **16**
 
 - Course description:
